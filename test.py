@@ -6,13 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+import math
 
 # Setup path to data folder
 data_path = Path("data/")
-image_path = data_path / "graph"
+image_path = data_path / "spectrograms" # change the datasets
 
 train_dir = image_path / "train"
 test_dir = image_path / "test"
+#test_dir_other = image_path / "test2"
 
 # Write transform for image
 data_transform = transforms.Compose([
@@ -31,18 +33,152 @@ training_data = datasets.ImageFolder(root=train_dir,# target folder of images
 testing_data = datasets.ImageFolder(root=test_dir,
                                  transform=data_transform)
 
+#testing_data_other = datasets.ImageFolder(root=test_dir_other,
+#                                          transform=data_transform)
+
 labels_map = {
-    0: "eight",
-    1: "five",
-    2: "four",
-    3: "nine",
-    4: "one",
-    5: "seven",
-    6: "six",
-    7: "three",
-    8: "two",
-    9: "zero",
+    0: "ai",
+    1: "ash",
+    2: "d",
+    3: "e",
+    4: "ei",
+    5: "f",
+    6: "g",
+    7: "k",
+    8: "m",
+    9: "n",
+    10: "s",
+    11: "schwa",
+    12: "sh",
+    13: "t",
+    14: "v",
+    15: "z",
+    
 }
+
+class Sound:
+    def __init__(self, sound):
+        if(sound == "ai"):
+            self.sound = sound
+            self.vowel = True
+            self.x = 0
+            self.y = 3
+            self.voiced = True
+        elif(sound == "ash"):
+            self.sound = sound
+            self.vowel = True
+            self.x = 0
+            self.y = 2
+            self.voiced = True
+        elif(sound == "d"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 3
+            self.y = 0
+            self.voiced = True
+        elif(sound == "e"):
+            self.sound = sound
+            self.vowel = True
+            self.x = 0
+            self.y = 1
+            self.voiced = True
+        elif(sound == "ei"):
+            self.sound = sound
+            self.vowel = True
+            self.x = 0
+            self.y = 1
+            self.voiced = True
+        elif(sound == "f"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 1
+            self.y = 4
+            self.voiced = False
+        elif(sound == "g"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 7
+            self.y = 0
+            self.voiced = True
+        elif(sound == "k"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 7
+            self.y = 0
+            self.voiced = False
+        elif(sound == "m"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 0
+            self.y = 1
+            self.voiced = True
+        elif(sound == "n"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 3
+            self.y = 1
+            self.voiced = True
+        elif(sound == "s"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 3
+            self.y = 4
+            self.voiced = False
+        elif(sound == "schwa"):
+            self.sound = sound
+            self.vowel = True
+            self.x = 1
+            self.y = 2
+            self.voiced = True
+        elif(sound == "sh"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 4
+            self.y = 4
+            self.voiced = False
+        elif(sound == "t"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 3
+            self.y = 0
+            self.voiced = False
+        elif(sound == "v"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 1
+            self.y = 4
+            self.voiced = True
+        elif(sound == "z"):
+            self.sound = sound
+            self.vowel = False
+            self.x = 3
+            self.y = 4
+            self.voiced = True
+        else:
+            self.sound = sound
+            self.vowel = False
+            self.x = 0
+            self.y = 0
+            self.voiced = False
+        
+
+    def distance(self, other):
+        if(self.vowel == True and other.vowel == True):
+            return math.sqrt((self.x- other.x) ** 2 + (self.y - other.y) ** 2)
+        elif(self.vowel == False and other.vowel == False):
+            #return (abs(self.x - other.x) + abs(self.y - other.y)) / 2.0
+            if(self.x == other.x and self.y == other.y):
+                return 0
+            elif(self.x == other.x or self.y == other.y):
+                return 1
+            else:
+                return 10
+        else:
+            return 10
+
+    def __str__(self):
+        return f"{self.sound} {self.x} {self.y}"
+
 
 '''
 figure = plt.figure(figsize=(8, 8))
@@ -68,6 +204,9 @@ test_dataloader = DataLoader(dataset=testing_data,
                              batch_size=1, 
                              num_workers=1, 
                              shuffle=False) # don't usually need to shuffle testing data
+#test_dataloader_other = DataLoader(dataset=testing_data_other,
+#                                   batch_size=1,
+#                                   shuffle=False)
 
 print(test_dataloader)
 
@@ -118,7 +257,8 @@ if __name__ == '__main__':
     model = NeuralNetwork().to(device)
     print(model)
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 
     def train(dataloader, model, loss_fn, optimizer):
         size = len(dataloader.dataset)
@@ -127,7 +267,7 @@ if __name__ == '__main__':
             X, y = X.to(device), y.to(device)
             #print(X)
             # Compute prediction error
-            pred = model(X)
+            pred = model(X) 
             loss = loss_fn(pred, y)
 
             # Backpropagation
@@ -155,30 +295,44 @@ if __name__ == '__main__':
         print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
     #print(enumerate(train_dataloader))
-    '''
-    epochs = 5
+        
+    #code below creates a model
+    
+    epochs = 25 # number of epochs
     for t in range(epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train(train_dataloader, model, loss_fn, optimizer)
         test(test_dataloader, model, loss_fn)
     print("Done!")
+    
+    torch.save(model.state_dict(), "test_model_main_25_epoch.pth")
+    print("Saved PyTorch Model State to test_model_main_25_epoch.pth")
+    
+
+    
+    #code below tests the model
     '''
-    #torch.save(model.state_dict(), "test_model_5_epoch.pth")
-    #print("Saved PyTorch Model State to test_model_5_epoch.pth")
-
-
-        
     model = NeuralNetwork().to(device)
-    model.load_state_dict(torch.load("test_model_5_epoch.pth", weights_only=True))
+    model.load_state_dict(torch.load("test_model_main_25_epoch.pth", weights_only=True))
 
     classes = training_data.classes
+    #classes = testing_data_other.classes
     #print(classes[0])
 
 
     model.eval()
     #print(test_dataloader)
+
+    
+    
+    size = len(test_dataloader.dataset) # make sure is right dataset
+    correct = 0
+    total_distance = 0
+    total_distance_no_wrong = 0
+    number_very_wrong = 0
     with torch.no_grad():
-            for X, y in test_dataloader:
+            for X, y in test_dataloader: # make sure is right dataset
+                
                 #print(X.size())
                 X, y = X.to(device), y.to(device)
                 pred = model(X)
@@ -186,7 +340,30 @@ if __name__ == '__main__':
                 #print(y)
                 predicted, actual = classes[pred[0].argmax(0)], classes[y]
                 print(f'Predicted: "{predicted}", Actual: "{actual}"')
-                
+                s1 = Sound(predicted)
+                s2 = Sound(actual)
+                #print(s1)
+                #print(s2)
+                distance = s1.distance(s2)
+                if(distance == 10):
+                    number_very_wrong += 1
+                else:
+                    total_distance_no_wrong += distance
+                print(distance)
+                total_distance += distance
+                if(predicted == actual):
+                    correct += 1
+    print("correct: " + str(correct))
+    print("size: " + str(size))
+    correct /= size
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%")
+    total_distance /= size
+    #distance_no_wrong = total_distance_no_wrong / (size - number_very_wrong)
+    print(f" Average Distance: {total_distance}")
+    print(f" Number Very Wrong: {number_very_wrong}")
+    #print(f" Average Distance Without Very Wrong: {distance_no_wrong} \n")
+    '''
+    
                 
     '''
     x, y = testing_data[0][0], testing_data[0][1]
