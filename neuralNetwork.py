@@ -12,9 +12,9 @@ import math
 data_path = Path("data/")
 image_path = data_path / "spectrograms" # change the datasets
 
-train_dir = image_path / "train"
-test_dir = image_path / "test"
-#test_dir_other = image_path / "test2"
+train_dir = image_path / "train_new" # old was train
+test_dir = image_path / "test_new" # should be test
+test_dir_other = image_path / "words"
 
 # Write transform for image
 data_transform = transforms.Compose([
@@ -33,8 +33,8 @@ training_data = datasets.ImageFolder(root=train_dir,# target folder of images
 testing_data = datasets.ImageFolder(root=test_dir,
                                  transform=data_transform)
 
-#testing_data_other = datasets.ImageFolder(root=test_dir_other,
-#                                          transform=data_transform)
+testing_data_other = datasets.ImageFolder(root=test_dir_other,
+                                          transform=data_transform)
 
 labels_map = {
     0: "ai",
@@ -55,6 +55,8 @@ labels_map = {
     15: "z",
     
 }
+
+
 
 class Sound:
     def __init__(self, sound):
@@ -170,7 +172,7 @@ class Sound:
             if(self.x == other.x and self.y == other.y):
                 return 0
             elif(self.x == other.x or self.y == other.y):
-                return 1
+                return max(abs(self.x - other.x), abs(self.y - other.y))
             else:
                 return 10
         else:
@@ -197,18 +199,18 @@ batch_size = 1
 
 # Create data loaders.
 train_dataloader = DataLoader(dataset=training_data, 
-                              batch_size=1, # how many samples per batch?
+                              batch_size=batch_size, # how many samples per batch?
                               num_workers=1, # how many subprocesses to use for data loading? (higher = more)
                               shuffle=True) # shuffle the data?
 test_dataloader = DataLoader(dataset=testing_data, 
-                             batch_size=1, 
+                             batch_size=batch_size, 
                              num_workers=1, 
                              shuffle=False) # don't usually need to shuffle testing data
-#test_dataloader_other = DataLoader(dataset=testing_data_other,
-#                                   batch_size=1,
-#                                   shuffle=False)
+test_dataloader_other = DataLoader(dataset=testing_data_other,
+                                   batch_size=batch_size,
+                                   shuffle=False)
 
-print(test_dataloader)
+#print(test_dataloader)
 
 if __name__ == '__main__':
     #it = iter(test_dataloader)
@@ -240,11 +242,13 @@ if __name__ == '__main__':
             super().__init__()
             self.flatten = nn.Flatten()
             self.linear_relu_stack = nn.Sequential(
-                nn.Linear(3*128*128, 512),
+                nn.Linear(3*128*128, 2048),
                 nn.ReLU(),
-                nn.Linear(512, 512),
+                nn.Linear(2048, 2048),
                 nn.ReLU(),
-                nn.Linear(512, 10)
+                nn.Linear(2048, 512),
+                nn.ReLU(),
+                nn.Linear(512, 16)
             )
 
         def forward(self, x):
@@ -257,7 +261,7 @@ if __name__ == '__main__':
     model = NeuralNetwork().to(device)
     print(model)
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4) # usually 1e-5
     #optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 
     def train(dataloader, model, loss_fn, optimizer):
@@ -298,22 +302,22 @@ if __name__ == '__main__':
         
     #code below creates a model
     
-    epochs = 25 # number of epochs
+    epochs = 100 # number of epochs
     for t in range(epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train(train_dataloader, model, loss_fn, optimizer)
         test(test_dataloader, model, loss_fn)
     print("Done!")
     
-    torch.save(model.state_dict(), "test_model_main_25_epoch.pth")
-    print("Saved PyTorch Model State to test_model_main_25_epoch.pth")
+    torch.save(model.state_dict(), "test_layer_20_epoch.pth")
+    print("Saved PyTorch Model State to test_layer_20_epoch.pth")
     
 
     
     #code below tests the model
     '''
     model = NeuralNetwork().to(device)
-    model.load_state_dict(torch.load("test_model_main_25_epoch.pth", weights_only=True))
+    model.load_state_dict(torch.load("test_layer_20_epoch.pth", weights_only=True))
 
     classes = training_data.classes
     #classes = testing_data_other.classes
@@ -363,10 +367,55 @@ if __name__ == '__main__':
     print(f" Number Very Wrong: {number_very_wrong}")
     #print(f" Average Distance Without Very Wrong: {distance_no_wrong} \n")
     '''
+
+
+    '''
+    model = NeuralNetwork().to(device)
+    model.load_state_dict(torch.load("test_layer_20_epoch.pth", weights_only=True))
+
+    classes = training_data.classes
+    #classes = testing_data_other.classes
+    #print(classes[0])
+
+
+    model.eval()
+    #print(test_dataloader)
     
+    
+    
+    
+    with torch.no_grad():
+            for X, y in test_dataloader_other: # make sure is right dataset
+                
+                #print(X.size())
+                X, y = X.to(device), y.to(device)
+                pred = model(X)
+                #print(pred)
+                #print(y)
+                predicted, actual = classes[pred[0].argmax(0)], classes[y]
+                print(f'Predicted: "{predicted}", Actual: "{actual}"')
                 
     '''
-    x, y = testing_data[0][0], testing_data[0][1]
+
+
+    
+                
+    
+
+    # doesn't do anything
+    '''    
+    model = NeuralNetwork().to(device)
+    model.load_state_dict(torch.load("test_model_main_100_epoch_low_lr.pth", weights_only=True))
+
+    #classes = training_data.classes
+    #classes = testing_data_other.classes
+    #print(classes[0])
+
+
+    model.eval()
+    #print(test_dataloader)
+    
+    x = testing_data[0][0]
     #print(testing_data[0][0])
     #print(testing_data[0][1])
     #m = nn.Flatten()
