@@ -52,8 +52,11 @@ def logscale_spec(spec, sr=44100, factor=20.):
     return newspec, freqs
 
 """ plot spectrogram"""
-def plotstft(audiopath, binsize=2**10, plotpath=None, colormap="jet"):
+# binsize normally 2**10 I like 128
+def plotstft(audiopath, binsize=128, plotpath=None, colormap="jet"):
     samplerate, samples = wav.read(audiopath)
+
+    #print(len(samples))
 
     s = stft(samples, binsize)
 
@@ -68,10 +71,10 @@ def plotstft(audiopath, binsize=2**10, plotpath=None, colormap="jet"):
 
     plt.figure(figsize=(15, 7.5))
     plt.imshow(np.transpose(ims), origin="lower", aspect="auto", cmap=colormap, interpolation="none")
-    plt.colorbar()
+    #plt.colorbar()
 
-    plt.xlabel("time (s)")
-    plt.ylabel("frequency (hz)")
+    #plt.xlabel("time (s)")
+    #plt.ylabel("frequency (hz)")
     plt.xlim([0, timebins-1])
     plt.ylim([0, freqbins])
 
@@ -79,22 +82,40 @@ def plotstft(audiopath, binsize=2**10, plotpath=None, colormap="jet"):
     plt.xticks(xlocs, ["%.02f" % l for l in ((xlocs*len(samples)/timebins)+(0.5*binsize))/samplerate])
     ylocs = np.int16(np.round(np.linspace(0, freqbins-1, 10)))
     plt.yticks(ylocs, ["%.02f" % freq[i] for i in ylocs])
-
+    
+    plt.tick_params(left = False, right = False , labelleft = False , 
+                labelbottom = False, bottom = False)
+    
     if plotpath:
         plt.savefig(plotpath, bbox_inches="tight")
     else:
         plt.show()
 
     plt.clf()
+    #plt.close()
 
     return ims
 
+'''
+#directory = "/Users/nhogan/Desktop/SpectrogramTest/soerenab AudioMNIST master data-01"
+#directory = "/Users/nhogan/Desktop/SpectrogramTest/soerenab AudioMNIST master data-02"
+directory = "/Users/nhogan/Desktop/SpectrogramTest/z" # change this
 
-directory = "/Users/nhogan/Desktop/SpectrogramTest/soerenab AudioMNIST master data-01"
+for filename in os.scandir(directory):
+    if filename.is_file():
+        ims = plotstft(filename, plotpath="zSpec/"+str(filename)+".png") # change this
+'''
 
-#for filename in os.scandir(directory):
-#    if filename.is_file():
-#        ims = plotstft(filename, plotpath="graph/"+str(filename)+".png")
+directory = "/Users/nhogan/Desktop/SpectrogramTest/temp_wavs" # change this
 
-ims = plotstft("0_01_0.wav")
+for filename in os.scandir(directory):
+    if filename.is_file():
+        print(str(filename))
+        if(str(filename)[-3] == 'v'):
+            ims = plotstft(filename, plotpath="/Users/nhogan/Desktop/Comps??/data/spectrograms/train_new/ash/"+str(filename)+".png") # change this
 
+#ims = plotstft("0_01_0.wav")
+#ims = plotstft("common_voice_es_18310029-2_new.Sound")
+
+
+#ims = plotstft("/Users/nhogan/Desktop/languages/en/grid_and_wav/common_voice_en_110270.wav", plotpath="110270.png")
